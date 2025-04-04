@@ -1,0 +1,19 @@
+{
+  "name": "haj-umra",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "vedeo": "npx playwright test vedeoUploadFromAdministration.spec.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.51.1",
+    "@types/node": "^22.13.16"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.6.0"
+  }
+}
