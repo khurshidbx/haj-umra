@@ -1,17 +1,22 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import { faker } from "@faker-js/faker";
+import authenticateUser from "../../../utils/utils.spec.ts"
 
-const administration = {
+
+
+const userObj = {
     username: "administratsiya",
     password: "qweasdzxc",
+    role: "Super Admin"
 };
 
-async function login(page) {
-    await page.goto("/login");
-    await page.getByRole("textbox", { name: "*Login" }).fill(administration.username);
-    await page.getByRole("textbox", { name: "*Password" }).fill(administration.password);
-    await page.getByRole("button", { name: "Kirish" }).click();
+type UserInfo = {
+    first_name: string;
+    middle_name: string;
+    last_name: string;
+    pinfl: string;
+    passport_serial: string;
 }
 
 test.describe("Video Management Tests", () => {
@@ -19,19 +24,22 @@ test.describe("Video Management Tests", () => {
     let uploadedTutorialId: string;
     const tutorialName = faker.lorem.words(3);
     const editedTutorialName = faker.lorem.words(3);
+    let context;
+    let page;
+    let userInfo 
 
-    // Login before each test
-    test.beforeEach(async ({ page }) => {
-        login(page)
 
-        // Get access token
-        const loginResponse = await page.waitForResponse("/api/user/login/");
-        const loginResponseBody = await loginResponse.json();
-        access_token = loginResponseBody.access;
-        console.log("Access Token:", access_token);
+    test.beforeAll(async ({ browser }) => {
+        const authResult = await authenticateUser(browser, userObj.username, userObj.password, userObj.role);
+        context = authResult.context;
+        page = authResult.page;
+        access_token = authResult.accessToken;
+        userInfo = authResult.userInfo;
+
     });
 
-    test("Upload a video", async ({ page }) => {
+
+    test("Upload a video", async () => {
 
         const videoFile = "city_cars.mp4";
 
@@ -73,35 +81,18 @@ test.describe("Video Management Tests", () => {
         await expect.soft(successNotification).toContainText("Muvaffaqiyatli yuklandi");
     });
 
-    test("Edit a video", async ({ page }) => {
-       
+    test("Edit a video", async () => {
+
         const editedVideoFile = "randomMMOOVV.mov";
 
-        // Navigate to video management
-        await page.getByText("Boshqaruv").click();
-        // await page.pause()
-        const boshqaruv = await page.locator("h2:text-is('Boshqaruv')")
-        await expect.soft(boshqaruv).toHaveCount(1)
-        await page.getByText("Video qo'llanmalar").click();
-
         // Edit video
-        // await page.locator("button.edit").nth(0).click();
-        console.log(tutorialName);
         await page.locator('div', { hasText: tutorialName }).locator("button.edit").first().click()
-        // await page.locator('div').filter({ hasText: /^deinde defessus repellatexplicabo minima collum$/ }).getByRole('button').first().click();
-        // await page.waitForTimeout(5000)
         const modalEditTitle = page.getByRole("heading", { name: "Video qo'llanmani tahrirlash" });
 
         await expect.soft(modalEditTitle).toHaveText("Video qo'llanmani tahrirlash");
         await page.getByLabel("Qo’llanma nomi").click()
         await page.getByLabel("Qo’llanma nomi").fill('')
         await page.getByLabel("Qo’llanma nomi").fill(editedTutorialName)
-        // await page.getByRole("textbox", { name: tutorialName }).clear()
-        // await page.pause()
-
-        // await page.getByRole("textbox", { name: "*Qo’llanma nomi" }).fill(editedTutorialName);
-        console.log(editedTutorialName);
-
 
         const fileChooserPromiseEdit = page.waitForEvent("filechooser");
         await page.getByText("Yuklash uchun bosing").click();
@@ -115,14 +106,9 @@ test.describe("Video Management Tests", () => {
         await expect(successNotification).toContainText("Muvaffaqiyatli yuklandi");
     });
 
-    test("Delete a video", async ({ page }) => {
-
-        await page.getByText("Boshqaruv").click();
-        await page.getByText("Video qo'llanmalar").click();
-
+    test("Delete a video", async () => {
         // Delete video using UI
         await page.locator('div', { hasText: editedTutorialName }).locator("button.delete").first().click()
-        // await page.locator("div", {hasText: "beatus tendo animus"}).locator("button.delete").click()
         await page.locator(".delete").first().click();
         await page.getByRole("tooltip", { name: "Video qo'llanmani o'" }).getByRole("paragraph").click();
         await page.getByRole("button", { name: "Ha", exact: true }).click();
@@ -131,15 +117,15 @@ test.describe("Video Management Tests", () => {
         console.log("Video deleted successfully.");
     });
 
-    test.skip("Delete a video using API", async ({ request }) => {
-        // Delete video using API
-        const response = await request.delete(`https://haj-umra.rx.unicon.uz/api/tutorial/${uploadedTutorialId}/`, {
-            headers: {
-                Authorization: `Bearer ${access_token}`,
-            },
-        });
+    // test.skip("Delete a video using API", async ({ request }) => {
+    //     // Delete video using API
+    //     const response = await request.delete(`https://haj-umra.rx.unicon.uz/api/tutorial/${uploadedTutorialId}/`, {
+    //         headers: {
+    //             Authorization: `Bearer ${access_token}`,
+    //         },
+    //     });
 
-        expect(response.status()).toEqual(204);
-        console.log("Video deleted via API successfully.");
-    });
+    //     expect(response.status()).toEqual(204);
+    //     console.log("Video deleted via API successfully.");
+    // });
 });
